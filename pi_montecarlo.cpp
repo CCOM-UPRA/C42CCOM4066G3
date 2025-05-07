@@ -1,7 +1,5 @@
 /*
  * Monte Carlo Estimation of Pi using MPI
- *
- * Completar las secciones marcadas con TODO.
  * 
  * Instrucciones:
  *   Compilar: mpicc -O2 -o pi_montecarlo pi_montecarlo.c
@@ -9,7 +7,6 @@
  *
  * total_samples debe ser un entero largo (p.ej. 100000000)
  */
- #include <iostream>
  #include <mpi.h>
  #include <stdio.h>
  #include <stdlib.h>
@@ -17,7 +14,7 @@
  #include <omp.h>
  #include <random>
  
- int main(int argc, char **argv) {//argc may be the total samples
+ int main(int argc, char **argv) {
      int rank, size;
      long long int local_count = 0;
      long long int total_count = 0;
@@ -29,14 +26,15 @@
      MPI_Comm_size(MPI_COMM_WORLD, &size);
      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
      /* 2: Validar el argumento de entrada en el proceso 0. Enviar
-                total_samples a todos los procesos (MPI_Bcast)           */  
-     if (rank == 0) {
-         for (int c = 1; c < size; c++) {
-             MPI_Send(&total_samples, 1, MPI_INT, c, 0, MPI_COMM_WORLD);
-         }
-     } else {
-         MPI_Recv(&total_samples, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                total_samples a todos los procesos (MPI_Bcast)           */
+     if (argc < 2) {//argv[0] is the name of the program, and an argument must be passed to get the total sample count
+         printf("Debe proveer un numero de samples");
+         return 1;
      }
+     if (rank == 0) {//assign total samples to root
+         total_samples = (long long int)argv[1];
+     }
+     MPI_Bcast(&total_samples, 1, MPI_LONG_LONG_INT, 0, MPI_COMM_WORLD);
      /* 3: Calcular samples_per_proc = total_samples / size.*/
      samples_per_proc = total_samples / size;
      /* 4: Sembrar una semilla diferente por proceso (time(NULL) + rank)                                */
@@ -50,7 +48,7 @@
          double dist = start * start + end * end;
          //Check if it's in the circle'
          if (dist <= 1) {
-             local_count++;
+             local_count++;//Count the point if it is in the radius
          }
      }
      /* 6: Reducir los conteos locales en total_count usando MPI_Reduce                                 */
@@ -58,9 +56,9 @@
      /* 7: En el proceso 0, calcular pi_estimate = 4 * total_count / total_samples y mostrar resultados */
      if (rank == 0) {
          double pi_estimate = 4 * (total_count / total_samples);
-         std::cout << "Valor estimado de PI: " << pi_estimate << std::endl;
-         std::cout << "Numero de procesadores: " << size << std::endl;
-         std::cout << "Numero de samples: " << total_samples << std::endl;
+         printf("Valor estimado de PI: %f\n", pi_estimate);
+         printf("Numero de procesadores: %d\n", size);
+         printf("Numero de samples: %lld\n", + total_samples);
      }
      /* 8: Finalizar MPI (MPI_Finalize) */
      MPI_Finalize();
